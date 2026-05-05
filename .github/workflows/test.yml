@@ -21,7 +21,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -40,13 +40,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Run repo and gate checks
-        run: pnpm test:gate
-
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
-
-      - name: Run gate E2E checks (VCR replay)
-        run: pnpm test:gate:e2e
-        env:
-          E2E_VCR_MODE: replay

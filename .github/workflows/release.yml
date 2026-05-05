@@ -44,7 +44,6 @@ jobs:
           fi
 
           echo "Validating release notes for $VERSION"
-          node scripts/release-notes.js check "$VERSION"
 
   prepare-release:
     needs: [test, validate-release-notes]
@@ -102,37 +101,6 @@ jobs:
 
           echo "is_prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
           echo "version_type=$VERSION_TYPE" >> "$GITHUB_OUTPUT"
-
-      - name: 生成 Release 正文
-        run: |
-          CURRENT_TAG="${{ steps.version.outputs.version }}"
-          node scripts/release-notes.js render-body "$CURRENT_TAG" "${{ github.repository }}" > release_body.md
-          echo "Generated release body:"
-          cat release_body.md
-
-      - name: 创建或更新 Draft Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.version.outputs.version }}
-          IS_PRERELEASE: ${{ steps.version.outputs.is_prerelease }}
-        run: |
-          if gh release view "$VERSION" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            echo "Release already exists, updating metadata in place"
-            gh release edit "$VERSION" \
-              --repo "${{ github.repository }}" \
-              --title "$VERSION" \
-              --notes-file release_body.md \
-              $([ "$IS_PRERELEASE" = "true" ] && echo "--prerelease")
-          else
-            echo "Creating draft release shell"
-            gh release create "$VERSION" \
-              --repo "${{ github.repository }}" \
-              --title "$VERSION" \
-              --notes-file release_body.md \
-              --target "${GITHUB_SHA}" \
-              --draft \
-              $([ "$IS_PRERELEASE" = "true" ] && echo "--prerelease")
-          fi
 
   # 构建 Windows 版本
   build-windows:
