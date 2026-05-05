@@ -103,6 +103,10 @@ export interface BasicSystemSessionState {
   // 对比模式
   isCompareMode: boolean
 
+  // 知识库相关
+  selectedKnowledgeBaseId: string
+  knowledgeBaseSearchResult: string
+
   // 最后活跃时间
   lastActiveAt: number
 
@@ -148,6 +152,8 @@ const createDefaultState = (): BasicSystemSessionState => ({
   selectedTemplateId: null,
   selectedIterateTemplateId: null,
   isCompareMode: true,
+  selectedKnowledgeBaseId: '',
+  knowledgeBaseSearchResult: '',
   lastActiveAt: Date.now(),
   assetBinding: undefined,
   origin: undefined,
@@ -208,6 +214,10 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
 
   // 对比模式
   const isCompareMode = ref(true)
+
+  // 知识库相关
+  const selectedKnowledgeBaseId = ref('')
+  const knowledgeBaseSearchResult = ref('')
 
   // 最后活跃时间
   const lastActiveAt = ref(Date.now())
@@ -319,6 +329,35 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     const nextValue = enabled ?? !isCompareMode.value
     if (isCompareMode.value === nextValue) return
     isCompareMode.value = nextValue
+    lastActiveAt.value = Date.now()
+  }
+
+  /**
+   * 更新知识库选择
+   */
+  const updateSelectedKnowledgeBase = (id: string) => {
+    if (selectedKnowledgeBaseId.value === id) return
+    selectedKnowledgeBaseId.value = id
+    // 清除之前的检索结果
+    knowledgeBaseSearchResult.value = ''
+    lastActiveAt.value = Date.now()
+    saveSession()
+  }
+
+  /**
+   * 更新知识库检索结果
+   */
+  const updateKnowledgeBaseSearchResult = (result: string) => {
+    if (knowledgeBaseSearchResult.value === result) return
+    knowledgeBaseSearchResult.value = result
+    lastActiveAt.value = Date.now()
+  }
+
+  /**
+   * 清除知识库检索结果
+   */
+  const clearKnowledgeBaseSearchResult = () => {
+    knowledgeBaseSearchResult.value = ''
     lastActiveAt.value = Date.now()
   }
 
@@ -460,6 +499,8 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
         selectedTemplateId: selectedTemplateId.value,
         selectedIterateTemplateId: selectedIterateTemplateId.value,
         isCompareMode: isCompareMode.value,
+        selectedKnowledgeBaseId: selectedKnowledgeBaseId.value,
+        knowledgeBaseSearchResult: knowledgeBaseSearchResult.value,
         lastActiveAt: lastActiveAt.value,
         ...assetBindingState.persistedAssetBinding(),
       }
@@ -588,6 +629,8 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
         selectedTemplateId.value = parsed.selectedTemplateId
         selectedIterateTemplateId.value = parsed.selectedIterateTemplateId
         isCompareMode.value = parsed.isCompareMode
+        selectedKnowledgeBaseId.value = parsed.selectedKnowledgeBaseId || ''
+        knowledgeBaseSearchResult.value = parsed.knowledgeBaseSearchResult || ''
         assetBindingState.restoreAssetBinding(parsed)
         lastActiveAt.value = Date.now()
       }
@@ -638,6 +681,8 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     selectedTemplateId,
     selectedIterateTemplateId,
     isCompareMode,
+    selectedKnowledgeBaseId,
+    knowledgeBaseSearchResult,
     lastActiveAt,
     assetBinding: assetBindingState.assetBinding,
     origin: assetBindingState.origin,
@@ -652,6 +697,9 @@ export const useBasicSystemSession = defineStore('basicSystemSession', () => {
     updateIterateTemplate,
     toggleCompareMode,
     updateCompareSnapshotRoles,
+    updateSelectedKnowledgeBase,
+    updateKnowledgeBaseSearchResult,
+    clearKnowledgeBaseSearchResult,
     setTestColumnCount,
     setMainSplitLeftPct,
     resetTestVariantState,

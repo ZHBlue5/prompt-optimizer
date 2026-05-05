@@ -11,6 +11,7 @@ export const CORE_SERVICE_KEYS = {
   IMAGE_MODELS: "image-models", // 图像模型配置存储键
   USER_TEMPLATES: "user-templates", // 用户模板存储键
   PROMPT_HISTORY: "prompt_history", // 提示词历史记录存储键
+  KNOWLEDGE_BASES: "knowledge-bases", // 知识库配置存储键
 } as const;
 
 // UI设置相关
@@ -24,6 +25,9 @@ export const UI_SETTINGS_KEYS = {
   BASIC_SUB_MODE: "app:settings:ui:basic-sub-mode", // 基础模式的子模式（system/user）
   PRO_SUB_MODE: "app:settings:ui:pro-sub-mode", // Pro 模式的子模式（multi/variable）
   IMAGE_SUB_MODE: "app:settings:ui:image-sub-mode", // 图像模式的子模式（text2image/image2image）
+
+  // 知识库拼接模板
+  KNOWLEDGE_BASE_TEMPLATE: "app:settings:ui:knowledge-base-template",
 } as const;
 
 // 模型选择相关

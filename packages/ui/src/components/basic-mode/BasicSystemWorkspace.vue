@@ -174,7 +174,7 @@
 
             <!-- 右侧：测试区域 -->
             <div ref="testPaneRef" class="split-pane" style="min-width: 0; height: 100%; overflow: hidden;">
-                <NFlex vertical :style="{ height: '100%', gap: '12px' }">
+              <NFlex vertical :style="{ height: '100%', gap: '12px' , overflow: 'auto'}">
                     <!-- 测试输入（system 模式必填） -->
                     <NCard :style="{ flexShrink: 0 }" size="small">
                         <TestInputSection
@@ -189,7 +189,58 @@
                         />
                     </NCard>
 
-                    <!-- 顶部：列数与全局操作 -->
+                <!-- 知识库选择与检索 -->
+                <NCard :style="{ flexShrink: 0 }" size="small">
+                  <NFlex align="center" :size="12" :wrap="false">
+                    <NText :depth="2" style="font-size: 14px; flex-shrink: 0;">
+                      {{ t('testKnowledgeBase.knowledgeBase') }}:
+                    </NText>
+                    <NSelect
+                        v-model:value="selectedKnowledgeBaseId"
+                        :options="knowledgeBaseOptions"
+                        :placeholder="t('test.selectKnowledgeBase')"
+                        :disabled="isAnyVariantRunning || knowledgeBaseConfigs.length === 0"
+                        style="width: 200px;"
+                        clearable
+                        @update:value="handleKnowledgeBaseSelect"
+                    />
+                    <NButton
+                        size="small"
+                        :disabled="!selectedKnowledgeBaseId || !testContentModel.trim() || isKnowledgeBaseSearching"
+                        :loading="isKnowledgeBaseSearching"
+                        @click="handleKnowledgeBaseSearch"
+                    >
+                      {{ t('knowledge.searchButton') }}
+                    </NButton>
+                    <NSelect
+                        v-model:value="knowledgeBaseTemplateModel"
+                        :options="knowledgeBaseTemplateOptions"
+                        :placeholder="t('testKnowledgeBase.template')"
+                        size="small"
+                        style="width: 160px;"
+                    />
+                    <NTag v-if="session.knowledgeBaseSearchResult" type="success" size="small">
+                      {{ t('testKnowledgeBase.knowledgeBaseResult') }}
+                    </NTag>
+                    <NButton
+                        v-if="session.knowledgeBaseSearchResult"
+                        size="small"
+                        quaternary
+                        @click="clearKnowledgeBaseResult"
+                    >
+                      {{ t('common.clear') }}
+                    </NButton>
+                  </NFlex>
+                  <div v-if="session.knowledgeBaseSearchResult" class="knowledge-base-result-preview">
+                    <NText depth="3" style="font-size: 12px;">
+                      {{
+                        session.knowledgeBaseSearchResult
+                      }}
+                    </NText>
+                  </div>
+                </NCard>
+
+                <!-- 顶部：列数与全局操作 -->
                     <NCard size="small" :style="{ flexShrink: 0 }">
                         <div class="test-area-top">
                             <NFlex align="center" :size="8" :wrap="false" style="min-width: 0;">
@@ -474,13 +525,14 @@ import {
   type TestVariantId,
   type TestColumnCount,
 } from '../../stores/session/useBasicSystemSession'
+import {useGlobalSettings} from '@/stores'
 import { useBasicWorkspaceLogic } from '../../composables/workspaces/useBasicWorkspaceLogic'
 import { useWorkspaceModelSelection } from '../../composables/workspaces/useWorkspaceModelSelection'
 import { useWorkspaceTemplateSelection } from '../../composables/workspaces/useWorkspaceTemplateSelection'
 import { useEvaluationHandler } from '../../composables/prompt/useEvaluationHandler'
 import { buildCompareEvaluationPayload, useCompareRoleConfig } from '../../composables/prompt'
 import { provideEvaluation } from '../../composables/prompt/useEvaluationContext'
-import { NButton, NCard, NFlex, NIcon, NText, NRadioGroup, NRadioButton, NTooltip, NTag } from 'naive-ui'
+import {NButton, NCard, NFlex, NIcon, NText, NRadioGroup, NRadioButton, NTooltip, NTag, NSelect} from 'naive-ui'
 import InputPanelUI from '../InputPanel.vue'
 import PromptPanelUI from '../PromptPanel.vue'
 import WorkspaceUtilityMenu from '../common/WorkspaceUtilityMenu.vue'
@@ -530,6 +582,104 @@ const appOpenTemplateManager = inject<((type?: string) => void) | null>('openTem
 
 // Session store（单一真源）
 const session = useBasicSystemSession()
+
+// Global settings store
+const globalSettings = useGlobalSettings()
+
+// 知识库状态
+const selectedKnowledgeBaseId = ref(session.selectedKnowledgeBaseId)
+const knowledgeBaseConfigs = ref<{ id: string; name: string }[]>([])
+const isKnowledgeBaseSearching = ref(false)
+
+// 知识库拼接模板选项（从全局设置读取）
+const knowledgeBaseTemplateOptions = computed(() =>
+    globalSettings.state.knowledgeBaseTemplateOptions.map(opt => ({
+      label: opt.label,
+      value: opt.value,
+    }))
+)
+
+// 知识库拼接模板
+const knowledgeBaseTemplateModel = computed({
+  get: () => globalSettings.state.knowledgeBaseTemplate,
+  set: (val) => globalSettings.updateKnowledgeBaseTemplate(val),
+})
+
+// 监听 session 中的值变化
+watch(() => session.selectedKnowledgeBaseId, (val) => {
+  selectedKnowledgeBaseId.value = val
+})
+
+// 知识库选项
+const knowledgeBaseOptions = computed(() => {
+  return knowledgeBaseConfigs.value.map(kb => ({
+    label: kb.name,
+    value: kb.id,
+  }))
+})
+
+// 加载知识库配置
+const loadKnowledgeBaseConfigs = async () => {
+  if (!services.value?.knowledgeManager) return
+  try {
+    const configs = await services.value.knowledgeManager.getAllConfigs()
+    knowledgeBaseConfigs.value = configs.filter(c => c.enabled).map(c => ({
+      id: c.id,
+      name: c.name,
+    }))
+  } catch (error) {
+    console.error('[BasicSystemWorkspace] Failed to load knowledge base configs:', error)
+  }
+}
+
+// 选择知识库
+const handleKnowledgeBaseSelect = (id: string | null) => {
+  if (id) {
+    session.updateSelectedKnowledgeBase(id)
+  } else {
+    session.updateSelectedKnowledgeBase('')
+  }
+  selectedKnowledgeBaseId.value = id || ''
+}
+
+// 检索知识库
+const handleKnowledgeBaseSearch = async () => {
+  if (!selectedKnowledgeBaseId.value || !testContentModel.value.trim()) return
+  if (!services.value?.knowledgeManager) return
+
+  isKnowledgeBaseSearching.value = true
+  try {
+    const results = await services.value.knowledgeManager.search({
+      query: testContentModel.value.trim(),
+      knowledgeBaseId: selectedKnowledgeBaseId.value,
+    })
+
+    if (results.length > 0) {
+      const contextText = results
+          .map((r) => `${r.content}`)
+          .join('\n\n')
+      session.updateKnowledgeBaseSearchResult(contextText)
+    } else {
+      session.updateKnowledgeBaseSearchResult('')
+      toast.info(t('knowledge.noResults'))
+    }
+  } catch (error) {
+    console.error('[BasicSystemWorkspace] Knowledge base search failed:', error)
+    toast.error(String(error))
+  } finally {
+    isKnowledgeBaseSearching.value = false
+  }
+}
+
+// 清除检索结果
+const clearKnowledgeBaseResult = () => {
+  session.updateKnowledgeBaseSearchResult('')
+}
+
+// 初始化加载
+onMounted(() => {
+  loadKnowledgeBaseConfigs()
+})
 
 // ==================== 主布局：可拖拽分栏（左侧 25%~50%） ====================
 
@@ -1023,10 +1173,18 @@ const getVariantTestInput = (id: TestVariantId): VariantTestInput | null => {
     return null
   }
 
-  const userPrompt = (logic.testContent.value || '').trim()
+  let userPrompt = (logic.testContent.value || '').trim()
   if (!userPrompt) {
     toast.error(t('test.error.noTestContent'))
     return null
+  }
+
+  // 如果有知识库检索结果，添加到用户提示词之前作为上下文
+  if (session.knowledgeBaseSearchResult) {
+    const template = globalSettings.state.knowledgeBaseTemplate
+    userPrompt = template
+        .replace(/\{context\}/g, session.knowledgeBaseSearchResult)
+        .replace(/\{query\}/g, userPrompt)
   }
 
   const resolved = resolveTestPrompt(variantVersionModels[id].value)
@@ -1691,6 +1849,15 @@ defineExpose({
 
 .test-area-label {
     white-space: nowrap;
+}
+
+.knowledge-base-result-preview {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--n-color-embedded);
+  border-radius: 4px;
+  max-height: 80px;
+  overflow: hidden;
 }
 
 .variant-deck {

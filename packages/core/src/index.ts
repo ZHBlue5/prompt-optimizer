@@ -138,6 +138,12 @@ export { DataManager, createDataManager } from './services/data/manager'
 export type { IDataManager } from './services/data/manager'
 export { ElectronDataManagerProxy } from './services/data/electron-proxy'
 
+// 导出知识库管理相关
+export { KnowledgeManager, createKnowledgeManager } from './services/knowledge/manager'
+export { ElectronKnowledgeManagerProxy } from './services/knowledge/electron-proxy'
+export type { IKnowledgeManager, KnowledgeBaseConfig, KnowledgeSearchResult, KnowledgeSearchParams } from './services/knowledge/types'
+export * from './services/knowledge/errors'
+
 // 导出偏好设置服务相关
 export * from './services/preference/types'
 export { ElectronPreferenceServiceProxy } from './services/preference/electron-proxy'

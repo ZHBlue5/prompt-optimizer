@@ -66,6 +66,7 @@ const {
   createTemplateLanguageService,
   createDataManager,
   createContextRepo,
+  createKnowledgeManager,
   FavoriteManager,
   FileStorageProvider,
   runStorageStartupSafetyCheck,
@@ -103,7 +104,7 @@ function safeSerialize(obj) {
 }
 
 let mainWindow;
-let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager, contextRepo, favoriteManager;
+let modelManager, templateManager, historyManager, llmService, promptService, templateLanguageService, preferenceService, dataManager, contextRepo, favoriteManager, knowledgeManager;
 let imageModelManager, imageService;
 let imageAdapterRegistry; // 全局引用以供 IPC 处理器使用
 let storageProvider; // 全局存储提供器引用，用于退出时保存数据
@@ -550,7 +551,7 @@ function createWindow() {
 async function initializeServices() {
   try {
     console.log('[Main Process] Initializing core services...');
-    
+
     // 设置环境变量，确保主进程能访问API密钥
     // 这些环境变量应该在启动桌面应用之前设置
     console.log('[Main Process] Checking environment variables...');
@@ -598,7 +599,7 @@ async function initializeServices() {
     if (dynamicEnvVars.length > 0) {
       console.log(`[Main Process] Found ${dynamicEnvVars.length} dynamic custom model environment variables`);
     }
-    
+
     if (!hasApiKeys) {
       console.warn('[Main Process] No API keys found in environment variables.');
       console.warn('[Main Process] Please set environment variables before starting the desktop app.');
@@ -607,7 +608,7 @@ async function initializeServices() {
       console.warn('[Main Process]   VITE_CUSTOM_API_KEY_qwen3=your_qwen_key npm start');
       console.warn('[Main Process]   VITE_CUSTOM_API_KEY_claude=your_claude_key npm start');
     }
-    
+
     console.log('[DESKTOP] Creating file storage provider for desktop environment');
 
     // 使用标准用户数据目录，支持自动更新
@@ -616,12 +617,12 @@ async function initializeServices() {
     storageProvider = new FileStorageProvider(userDataPath);
     const startupRepairReport = await runStorageStartupSafetyCheck(storageProvider);
     await writeStartupRepairReport(storageProvider, startupRepairReport);
-    
+
     await initializePreferenceService(storageProvider);
-    
+
     console.log('[DESKTOP] Creating model manager...');
     modelManager = createModelManager(storageProvider);
-    
+
     console.log('[DESKTOP] Creating template language service...');
     templateLanguageService = createTemplateLanguageService(preferenceService);
 
@@ -630,10 +631,10 @@ async function initializeServices() {
 
     console.log('[DESKTOP] Creating template manager...');
     templateManager = createTemplateManager(storageProvider, templateLanguageService);
-    
+
     console.log('[DESKTOP] Creating history manager...');
     historyManager = createHistoryManager(storageProvider, modelManager);
-    
+
     console.log('[DESKTOP] Initializing model manager...');
     await modelManager.ensureInitialized();
     // 图像模型管理器
@@ -641,7 +642,7 @@ async function initializeServices() {
     imageAdapterRegistry = createImageAdapterRegistry();
     imageModelManager = createImageModelManager(storageProvider, imageAdapterRegistry);
     await imageModelManager.ensureInitialized();
-    
+
     // 在创建任何网络相关服务前，先根据系统代理设置 undici 全局分发器
     await setupGlobalProxyDispatcherFromSystem();
 
@@ -658,7 +659,7 @@ async function initializeServices() {
     );
     console.log('[DESKTOP] Creating Image service...');
     imageService = createImageService(imageModelManager, imageAdapterRegistry);
-    
+
     console.log('[DESKTOP] Creating Context repository...');
     contextRepo = createContextRepo(storageProvider);
 
@@ -667,9 +668,12 @@ async function initializeServices() {
 
     console.log('[DESKTOP] Creating Favorite manager...');
     favoriteManager = new FavoriteManager(storageProvider);
-    
+
+    console.log('[DESKTOP] Creating Knowledge manager...');
+    knowledgeManager = createKnowledgeManager(storageProvider);
+
     console.log('[Main Process] Core services initialized successfully.');
-    
+
     return true;
   } catch (error) {
     console.error('[Main Process] Failed to initialize core services:', error);
@@ -819,7 +823,7 @@ function createFavoriteErrorResponse(error) {
 function setupIPC() {
   console.log('[Main Process] Setting up high-level service IPC handlers...');
   setupPreferenceHandlers();
-  
+
   // LLM Service handlers
   ipcMain.handle('llm-testConnection', async (event, provider) => {
     try {
@@ -2055,6 +2059,73 @@ function setupIPC() {
     }
   });
 
+  // Knowledge Manager handlers
+  ipcMain.handle('knowledge-ensureInitialized', async () => {
+    try {
+      await knowledgeManager.ensureInitialized();
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('knowledge-getAllConfigs', async () => {
+    try {
+      const configs = await knowledgeManager.getAllConfigs();
+      return createSuccessResponse(configs);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('knowledge-getConfig', async (event, id) => {
+    try {
+      const config = await knowledgeManager.getConfig(id);
+      return createSuccessResponse(config);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('knowledge-saveConfig', async (event, config) => {
+    try {
+      const safeConfig = safeSerialize(config);
+      await knowledgeManager.saveConfig(safeConfig);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('knowledge-deleteConfig', async (event, id) => {
+    try {
+      await knowledgeManager.deleteConfig(id);
+      return createSuccessResponse(null);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('knowledge-testConnection', async (event, config) => {
+    try {
+      const safeConfig = safeSerialize(config);
+      const result = await knowledgeManager.testConnection(safeConfig);
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  ipcMain.handle('knowledge-search', async (event, params) => {
+    try {
+      const safeParams = safeSerialize(params);
+      const results = await knowledgeManager.search(safeParams);
+      return createSuccessResponse(results);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
   // Data Manager handlers
   ipcMain.handle('data-exportAllData', async (event) => {
     try {
@@ -2386,26 +2457,26 @@ async function setupUpdateHandlers() {
   // 开发模式下的更新检查配置
   if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
     console.log('[Updater] Development mode detected');
-    
+
     // 设置开发环境专用的日志器（官方推荐）
     const log = require('electron-log');
     autoUpdater.logger = log;
     autoUpdater.logger.transports.file.level = 'debug';
     autoUpdater.logger.transports.console.level = 'debug';
-    
+
     // 为更新器创建专门的日志文件
     const userDataPath = app.getPath('userData');
-    autoUpdater.logger.transports.file.resolvePathFn = () => 
+    autoUpdater.logger.transports.file.resolvePathFn = () =>
       path.join(userDataPath, 'logs', 'auto-updater.log');
-    
+
     // 强制启用开发模式更新检查
     autoUpdater.forceDevUpdateConfig = true;
-    
+
     console.log('[Updater] Development mode configuration:');
     console.log('[Updater] - forceDevUpdateConfig: true');
     console.log('[Updater] - Looking for dev-app-update.yml in:', path.join(__dirname, 'dev-app-update.yml'));
     console.log('[Updater] - dev-app-update.yml exists:', require('fs').existsSync(path.join(__dirname, 'dev-app-update.yml')));
-    
+
     console.log('[Updater] Development mode update testing enabled');
     console.log('[Updater] Auto-updater logs will be saved to:', path.join(userDataPath, 'logs', 'auto-updater.log'));
   }
@@ -2529,10 +2600,10 @@ async function setupUpdateHandlers() {
     console.log('[Updater] Next step: User needs to click "Install and Restart" to complete the update');
     console.log('[Updater] The application will automatically restart after installation');
     console.log('[Updater] =============================================');
-    
+
     // 下载完成，重置下载状态
     isDownloadingUpdate = false;
-    
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       // 发送更详细的信息给前端，包含安装提示
       mainWindow.webContents.send(IPC_EVENTS.UPDATE_DOWNLOADED, {
@@ -2585,13 +2656,13 @@ async function setupUpdateHandlers() {
 
       // 执行更新检查
       console.log('[Updater] Starting update check...');
-      
+
       // 在实际调用 checkForUpdates 前检查配置
       console.log('[Updater Debug] ===== PRE-CHECK CONFIGURATION =====');
       console.log('[Updater Debug] autoUpdater.allowPrerelease:', autoUpdater.allowPrerelease);
       console.log('[Updater Debug] autoUpdater.autoDownload:', autoUpdater.autoDownload);
       console.log('[Updater Debug] ===============================================');
-      
+
       const result = await autoUpdater.checkForUpdates();
 
       console.log('[DEBUG] ===== BACKEND UPDATE CHECK RESULT =====');
@@ -2671,7 +2742,7 @@ async function setupUpdateHandlers() {
   // 统一检查所有版本（解决并发冲突问题）
   ipcMain.handle(IPC_EVENTS.UPDATE_CHECK_ALL_VERSIONS, async () => {
     console.log('[Updater] Starting unified version check for all versions');
-    
+
     // 检查是否已有更新检查在进行中
     if (isCheckingForUpdate) {
       console.log('[Updater] Update check already in progress, ignoring request');
@@ -2766,7 +2837,7 @@ async function setupUpdateHandlers() {
       // 1. 检查正式版
       console.log('[Updater] Checking stable version...');
       autoUpdater.allowPrerelease = false;
-      
+
       try {
         const stableResult = await autoUpdater.checkForUpdates();
         results.stable = processResult(stableResult, 'stable');
@@ -2788,7 +2859,7 @@ async function setupUpdateHandlers() {
 
       console.log('[Updater] Checking prerelease version...');
       autoUpdater.allowPrerelease = true;
-      
+
       try {
         const prereleaseResult = await autoUpdater.checkForUpdates();
         results.prerelease = processResult(prereleaseResult, 'prerelease');
@@ -2877,18 +2948,18 @@ async function setupUpdateHandlers() {
       console.log('[Updater] The application will now close and restart with the new version');
       console.log('[Updater] If the application does not restart automatically, please launch it manually');
       console.log('[Updater] ==========================================');
-      
+
       // 设置更新安装退出标志，跳过数据保存逻辑
       isUpdaterQuitting = true;
       console.log('[Updater] Set updater quit flag to skip data save');
-      
+
       // 注意：quitAndInstall会立即退出应用，所以不会执行到finally
       // 这个方法会：
       // 1. 关闭当前应用
       // 2. 安装新版本
       // 3. 启动新版本的应用
       autoUpdater.quitAndInstall();
-      
+
       // 这行代码通常不会执行到，因为 quitAndInstall() 会立即退出应用
       return createSuccessResponse({
         message: 'Installation started, application will restart'
@@ -2904,7 +2975,7 @@ async function setupUpdateHandlers() {
       console.error('[Updater] 4. The update file was not properly downloaded');
       console.error('[Updater] Please try downloading the update again');
       console.error('[Updater] ===============================');
-      
+
       return createDetailedErrorResponse(error);
     } finally {
       // 确保锁总是被释放（虽然quitAndInstall成功时不会执行到这里）

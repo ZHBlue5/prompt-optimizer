@@ -800,6 +800,48 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
 
+  // Knowledge Manager interface
+  knowledge: {
+    ensureInitialized: async () => {
+      const result = await ipcRenderer.invoke('knowledge-ensureInitialized');
+      if (!result.success) throw createIpcError(result.error);
+    },
+
+    getAllConfigs: async () => {
+      const result = await ipcRenderer.invoke('knowledge-getAllConfigs');
+      if (!result.success) throw createIpcError(result.error);
+      return result.data;
+    },
+
+    getConfig: async (id) => {
+      const result = await ipcRenderer.invoke('knowledge-getConfig', id);
+      if (!result.success) throw createIpcError(result.error);
+      return result.data;
+    },
+
+    saveConfig: async (config) => {
+      const result = await ipcRenderer.invoke('knowledge-saveConfig', config);
+      if (!result.success) throw createIpcError(result.error);
+    },
+
+    deleteConfig: async (id) => {
+      const result = await ipcRenderer.invoke('knowledge-deleteConfig', id);
+      if (!result.success) throw createIpcError(result.error);
+    },
+
+    testConnection: async (config) => {
+      const result = await ipcRenderer.invoke('knowledge-testConnection', config);
+      if (!result.success) throw createIpcError(result.error);
+      return result.data;
+    },
+
+    search: async (params) => {
+      const result = await ipcRenderer.invoke('knowledge-search', params);
+      if (!result.success) throw createIpcError(result.error);
+      return result.data;
+    },
+  },
+
   // Prompt Service interface
   prompt: {
     optimizePrompt: async (request) => {

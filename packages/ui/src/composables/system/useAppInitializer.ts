@@ -27,6 +27,7 @@ import {
   isRunningInElectron,
   waitForElectronApi,
   ElectronPreferenceServiceProxy,
+  ElectronKnowledgeManagerProxy,
   createPreferenceService,
   FavoriteManager,
   createImageModelManager,
@@ -37,6 +38,8 @@ import {
   runStorageStartupSafetyCheck,
   writeStartupRepairReport,
   // migrateLegacySessions - 已移除，session 是本次重构新引入
+  createKnowledgeManager,
+  type IKnowledgeManager,
   type IImageModelManager,
   type IImageService,
   type ITextAdapterRegistry,
@@ -111,6 +114,7 @@ export function useAppInitializer(): {
       let templateManager: ITemplateManager;
       let historyManager: IHistoryManager;
       let dataManager: IDataManager;
+      let knowledgeManager: IKnowledgeManager;
       let llmService: ILLMService;
       let promptService: IPromptService;
       let preferenceService: IPreferenceService;
@@ -147,6 +151,9 @@ export function useAppInitializer(): {
         promptService = new ElectronPromptServiceProxy();
         preferenceService = new ElectronPreferenceServiceProxy();
         startupRepairReport.value = await consumeStartupRepairReport(preferenceService)
+
+        // 知识库管理器（Electron 渲染进程代理）
+        knowledgeManager = new ElectronKnowledgeManagerProxy();
 
         // 文本模型适配器注册表（本地实例，不需要代理）
         textAdapterRegistryInstance = createTextAdapterRegistry();
@@ -238,6 +245,7 @@ export function useAppInitializer(): {
           modelManager,
           templateManager,
           historyManager,
+          knowledgeManager,
           dataManager,
           llmService,
           promptService,
@@ -428,6 +436,9 @@ export function useAppInitializer(): {
           imageModelManagerInstance,
         );
 
+        // 创建知识库管理器
+        knowledgeManager = createKnowledgeManager(storageProvider);
+
         // 创建收藏管理器
         favoriteManager = new FavoriteManager(storageProvider);
         favoriteManager = attachFavoriteAssetGc(favoriteManager, favoriteImageStorageService)
@@ -479,6 +490,7 @@ export function useAppInitializer(): {
           templateManager: templateManagerAdapter, // 使用适配器
           historyManager: historyManagerAdapter, // 使用适配器
           dataManager,
+          knowledgeManager,
           llmService,
           promptService,
           templateLanguageService: languageService,

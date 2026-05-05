@@ -57,6 +57,15 @@
             :ghost="false"
             :round="true"
         />
+      <ActionButtonUI
+          icon="📚"
+          :text="$t('nav.knowledge')"
+          @click="emit('open-knowledge-base')"
+          type="default"
+          size="medium"
+          :ghost="false"
+          :round="true"
+      />
         <ActionButtonUI
             icon="💾"
             :text="$t('nav.dataManager')"
@@ -240,6 +249,8 @@ const emit = defineEmits<{
     'open-history': []
     /** 打开模型管理器 */
     'open-model-manager': []
+  /** 打开知识库管理器 */
+  'open-knowledge-base': []
     /** 打开收藏夹 */
     'open-favorites': []
     /** 打开数据管理器 */

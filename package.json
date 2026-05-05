@@ -82,7 +82,9 @@
   "license": "AGPL-3.0-only",
   "pnpm": {
     "onlyBuiltDependencies": [
-      "electron"
+      "electron",
+      "msw",
+      "protobufjs"
     ]
   }
 }

@@ -32,6 +32,8 @@ export interface GlobalSettingsState {
   proSubMode: ProSubMode
   imageSubMode: ImageSubMode
 
+  knowledgeBaseTemplate: string
+  knowledgeBaseTemplateOptions: Array<{ label: string; value: string }>
   lastActiveAt: number
 }
 
@@ -45,6 +47,11 @@ const createDefaultState = (): GlobalSettingsState => ({
   basicSubMode: 'system',
   proSubMode: 'variable',
   imageSubMode: 'text2image',
+  knowledgeBaseTemplate: '{context}\n\n---\n\n{query}',
+  knowledgeBaseTemplateOptions: [
+    { label: 'Simple (---)', value: '{context}\n\n---\n\n{query}' },
+    { label: 'With Context Box', value: 'Context information is below, surrounded by ---------------------\n---------------------\n{context}\n---------------------\nGiven the context and provided history information and not prior knowledge,\nreply to the user comment. If the answer is not in the context, inform\nthe user that you can\'t answer the question.\n\n{query}' },
+  ],
   lastActiveAt: Date.now(),
 })
 
@@ -133,6 +140,18 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
   const updateImageSubMode = (mode: ImageSubMode) => {
     if (state.value.imageSubMode === mode) return
     state.value.imageSubMode = mode
+    touch()
+  }
+
+  const updateKnowledgeBaseTemplate = (template: string) => {
+    if (state.value.knowledgeBaseTemplate === template) return
+    state.value.knowledgeBaseTemplate = template
+    touch()
+  }
+
+  const updateKnowledgeBaseTemplateOptions = (options: Array<{ label: string; value: string }>) => {
+    if (JSON.stringify(state.value.knowledgeBaseTemplateOptions) === JSON.stringify(options)) return
+    state.value.knowledgeBaseTemplateOptions = options
     touch()
   }
 
@@ -378,6 +397,8 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
     updateBasicSubMode,
     updateProSubMode,
     updateImageSubMode,
+    updateKnowledgeBaseTemplate,
+    updateKnowledgeBaseTemplateOptions,
 
     // 工具方法
     reset,

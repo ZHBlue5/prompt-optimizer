@@ -48,6 +48,7 @@
                         @open-templates="openTemplateManager"
                         @open-history="historyManager.showHistory = true"
                         @open-model-manager="modelManager.showConfig = true"
+                        @open-knowledge-base="showKnowledgeBase = true"
                         @open-favorites="openFavoritesPage"
                         @open-data-manager="showDataManager = true"
                         @open-variables="handleOpenVariableManager()"
@@ -110,6 +111,10 @@
                 v-if="isReady"
                 v-model:show="showDataManager"
                 @imported="handleDataImported"
+            />
+            <KnowledgeBaseManagerUI
+                v-if="isReady"
+                v-model:show="showKnowledgeBase"
             />
 
             <!-- 收藏管理对话框 -->
@@ -262,6 +267,7 @@ import ModelManagerUI from '../ModelManager.vue'
 import TemplateManagerUI from '../TemplateManager.vue'
 import HistoryDrawerUI from '../HistoryDrawer.vue'
 import DataManagerUI from '../DataManager.vue'
+import KnowledgeBaseManagerUI from '../KnowledgeBaseManager.vue'
 import FavoriteManagerUI from '../FavoriteManager.vue'
 import SaveFavoriteDialog from '../SaveFavoriteDialog.vue'
 import VariableManagerModal from '../variable/VariableManagerModal.vue'
@@ -339,7 +345,7 @@ import { type IPromptService, type PromptAssetBinding, type PromptSessionOrigin,
 // 1. 基础 composables
 const hljsInstance = hljs;
 const i18n = useI18n();
- 
+
 const t = i18n.t;  // 在模板中使用
 const toast = useToast();
 
@@ -439,11 +445,11 @@ watch(
 // 🔧 修复：保存 composable 返回值，避免在 watch 回调中重复调用（导致 inject() 错误）
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const functionModeApi = useFunctionMode(services);
- 
+
 const basicSubModeApi = useBasicSubMode(services);
- 
+
 const proSubModeApi = useProSubMode(services);
- 
+
 const imageSubModeApi = useImageSubMode(services);
 
 // 3.5. 🔧 Step A: 建立路由驱动的单一真源（优先于 state，避免双真源）
@@ -639,6 +645,7 @@ const servicesForContextEditor = computed(() => services?.value || null);
 // 6. 创建所有必要的引用
 const promptService = shallowRef<IPromptService | null>(null);
 const showDataManager = ref(false);
+const showKnowledgeBase = ref(false);
 
 type ContextWorkspaceExpose = {
     // Vue ComponentPublicInstance 会自动 unwrap expose 里的 Ref，因此这里使用已解包的类型
@@ -2395,7 +2402,7 @@ onBeforeUnmount(async () => {
 
   removeRouterErrorHandler?.()
   removeRouterErrorHandler = null
- 
+
   await sessionManager.saveAllSessions()
 })
 </script>

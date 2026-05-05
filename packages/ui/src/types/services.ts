@@ -20,7 +20,8 @@ import type {
   IEvaluationService,
   IVariableExtractionService,
   IVariableValueGenerationService,
-  IImageStorageService
+  IImageStorageService,
+  IKnowledgeManager
 } from '@prompt-optimizer/core'
 
 /**
@@ -56,4 +57,6 @@ export interface AppServices {
   variableExtractionService?: IVariableExtractionService;
   // 🆕 变量值生成服务（可选）
   variableValueGenerationService?: IVariableValueGenerationService;
+  // 🆕 知识库管理服务（可选）
+  knowledgeManager?: IKnowledgeManager;
 }
