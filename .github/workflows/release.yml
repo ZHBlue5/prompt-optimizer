@@ -192,7 +192,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
-          gh release create "$VERSION" \
+          gh release upload "$VERSION" \
             packages/desktop/dist/PromptOptimizer-*.exe \
             packages/desktop/dist/PromptOptimizer-*.zip \
             packages/desktop/dist/*.blockmap \

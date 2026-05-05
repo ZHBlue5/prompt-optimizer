@@ -1,6 +1,6 @@
 {
   "name": "@prompt-optimizer/desktop",
-  "version": "2.10.1-rc4",
+  "version": "2.10.1-rc5",
   "description": "Desktop application for Prompt Optimizer",
   "main": "main.js",
   "repository": {
