@@ -22,6 +22,7 @@ theme:
   favicon: assets/images/favicon.png
   features:
     - content.code.copy
+    - navigation.expand
     - navigation.tracking
     - navigation.top
     - navigation.footer
@@ -84,7 +85,7 @@ plugins:
                 - 模板管理: basic/templates.md
                 - 历史记录: basic/history.md
                 - 收藏与导入: basic/favorites.md
-                - Prompt Garden: basic/prompt-garden.md
+                - 提示词库: basic/prompt-garden.md
                 - 数据管理: basic/data.md
                 - 工具调用: advanced/tools.md
             - 辅助功能:
@@ -112,6 +113,8 @@ plugins:
                     - 创意写作: examples/creative-writing.md
                     - 商务沟通: examples/business-communication.md
                     - 教学培训: examples/educational-training.md
+                - 图像提示词工作区:
+                    - 从提示词库导入并对比模型: examples/image-prompt-garden-nb151.md
             - 开发指南:
                 - 媒体示例: guide/media.md
         - locale: en
@@ -147,7 +150,7 @@ plugins:
                 - Template Management: basic/templates.md
                 - History Management: basic/history.md
                 - Favorites & Import: basic/favorites.md
-                - Prompt Garden: basic/prompt-garden.md
+                - Prompt Library: basic/prompt-garden.md
                 - Data Management: basic/data.md
                 - Tool Calling: advanced/tools.md
             - Auxiliary Features:
@@ -175,6 +178,8 @@ plugins:
                     - Creative Writing: examples/creative-writing.md
                     - Business Communication: examples/business-communication.md
                     - Educational Training: examples/educational-training.md
+                - Image Prompt Workspace:
+                    - Import from Prompt Library and Compare Models: examples/image-prompt-garden-nb151.md
             - Developer Guide:
                 - Media Examples: guide/media.md
   # 多版本：由 mike 管理（无需在此启用插件）
@@ -198,7 +203,8 @@ extra:
       link: https://github.com/linshenkx/prompt-optimizer
       name: GitHub
   website_url: https://always200.com
-  product_name: Product
+  garden_url: https://garden.always200.com
+  product_name: Optimizer
   product_url: https://prompt.always200.com
 
 # Markdown 扩展
